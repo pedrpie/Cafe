@@ -1,10 +1,8 @@
-// Módulo de Renderização do DOM utilizando apenas JavaScript puro
+// Renderizacao do DOM para as paginas da loja
 import { getCart, addToCart, increaseQuantity, decreaseQuantity, getCartTotal, getCartItemsCount, clearCart } from "./cart.js";
 import { fetchCafes } from "./api.js";
 
-/**
- * Cria a barra de navegação superior (Navbar) comum às páginas
- */
+// Cria o cabecalho de navegacao superior com o icone do carrinho
 export function createNavbar(activePage, navigateTo) {
   const nav = document.createElement("nav");
   nav.className = "navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm py-3";
@@ -27,12 +25,13 @@ export function createNavbar(activePage, navigateTo) {
     </div>
   `;
 
-  // Event listeners dos botões da Navbar
+  // Evento para navegar de volta a pagina inicial
   nav.querySelector("#nav-brand").addEventListener("click", (e) => {
     e.preventDefault();
     navigateTo("home");
   });
 
+  // Evento para abrir a pagina do carrinho
   nav.querySelector("#nav-cart-btn").addEventListener("click", (e) => {
     e.preventDefault();
     navigateTo("cart");
@@ -41,9 +40,7 @@ export function createNavbar(activePage, navigateTo) {
   return nav;
 }
 
-/**
- * Renderiza a Página 1: Catálogo Inicial de Cafés
- */
+// Renderiza a pagina inicial com o catalogo de cafes da API
 export async function renderHomePage(root, navigateTo) {
   root.innerHTML = "";
   root.appendChild(createNavbar("home", navigateTo));
@@ -51,7 +48,7 @@ export async function renderHomePage(root, navigateTo) {
   const main = document.createElement("main");
   main.className = "container my-5";
 
-  // Cabeçalho da página
+  // Secao de titulo e introducao
   const heroSection = document.createElement("div");
   heroSection.className = "text-center mb-5";
   heroSection.innerHTML = `
@@ -62,11 +59,11 @@ export async function renderHomePage(root, navigateTo) {
   `;
   main.appendChild(heroSection);
 
-  // Container onde os cards serão inseridos
+  // Grade responsiva para exibicao dos cards
   const gridContainer = document.createElement("div");
   gridContainer.className = "row g-4";
 
-  // Loading indicador
+  // Indicador visual de carregamento
   gridContainer.innerHTML = `
     <div class="col-12 text-center py-5">
       <div class="spinner-border text-warning" role="status"></div>
@@ -76,71 +73,76 @@ export async function renderHomePage(root, navigateTo) {
   main.appendChild(gridContainer);
   root.appendChild(main);
 
-  // Busca os cafés da API
-  const cafes = await fetchCafes();
-  gridContainer.innerHTML = "";
+  // Requisicao dos dados dos cafes via API
+  try {
+    const cafes = await fetchCafes();
+    gridContainer.innerHTML = "";
 
-  if (!cafes || cafes.length === 0) {
+    if (!cafes || cafes.length === 0) {
+      gridContainer.innerHTML = `
+        <div class="col-12 text-center py-5">
+          <p class="text-muted">Nenhum café encontrado na API.</p>
+        </div>
+      `;
+      return;
+    }
+
+    cafes.forEach((cafe) => {
+      const col = document.createElement("div");
+      col.className = "col-12 col-md-6 col-lg-4";
+
+      const ingredientsBadges = (cafe.ingredients || [])
+        .map(ing => `<span class="badge badge-ingredient border py-1 px-2 rounded-2">${ing}</span>`)
+        .join(" ");
+
+      col.innerHTML = `
+        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-coffee">
+          <img src="${cafe.image}" class="card-img-top coffee-img" alt="${cafe.title}">
+          <div class="card-body d-flex flex-column p-4">
+            <div class="d-flex justify-content-between align-items-baseline mb-2">
+              <h5 class="card-title fw-bold text-dark mb-0">${cafe.title}</h5>
+              <span class="fs-5 fw-bold text-success">R$ ${Number(cafe.price).toFixed(2)}</span>
+            </div>
+            <p class="card-text text-secondary small flex-grow-1 mb-3">${cafe.description}</p>
+            <div class="mb-4 d-flex flex-wrap gap-1">
+              ${ingredientsBadges}
+            </div>
+            <button class="btn btn-warning fw-semibold w-100 py-2 d-flex align-items-center justify-content-center gap-2 add-to-cart-btn">
+              <i class="bi bi-cart-plus-fill"></i> Adicionar ao Carrinho
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Evento para adicionar o cafe selecionado ao carrinho
+      const btnAdd = col.querySelector(".add-to-cart-btn");
+      btnAdd.addEventListener("click", () => {
+        addToCart(cafe);
+        const badge = document.getElementById("cart-badge-count");
+        if (badge) badge.textContent = getCartItemsCount();
+
+        // Feedback rapido no botao
+        const originalText = btnAdd.innerHTML;
+        btnAdd.className = "btn btn-success fw-semibold w-100 py-2 d-flex align-items-center justify-content-center gap-2";
+        btnAdd.innerHTML = '<i class="bi bi-check2-circle"></i> Adicionado!';
+        setTimeout(() => {
+          btnAdd.className = "btn btn-warning fw-semibold w-100 py-2 d-flex align-items-center justify-content-center gap-2";
+          btnAdd.innerHTML = originalText;
+        }, 900);
+      });
+
+      gridContainer.appendChild(col);
+    });
+  } catch (error) {
     gridContainer.innerHTML = `
       <div class="col-12 text-center py-5">
-        <p class="text-muted">Nenhum café disponível no momento.</p>
+        <p class="text-danger">Erro ao carregar cafés da API local (http://localhost:3000/cafes). Certifique-se de que o json-server está rodando.</p>
       </div>
     `;
-    return;
   }
-
-  cafes.forEach((cafe) => {
-    const col = document.createElement("div");
-    col.className = "col-12 col-md-6 col-lg-4";
-
-    const ingredientsBadges = (cafe.ingredients || [])
-      .map(ing => `<span class="badge badge-ingredient border py-1 px-2 rounded-2">${ing}</span>`)
-      .join(" ");
-
-    col.innerHTML = `
-      <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-coffee">
-        <img src="${cafe.image}" class="card-img-top coffee-img" alt="${cafe.title}">
-        <div class="card-body d-flex flex-column p-4">
-          <div class="d-flex justify-content-between align-items-baseline mb-2">
-            <h5 class="card-title fw-bold text-dark mb-0">${cafe.title}</h5>
-            <span class="fs-5 fw-bold text-success">R$ ${Number(cafe.price).toFixed(2)}</span>
-          </div>
-          <p class="card-text text-secondary small flex-grow-1 mb-3">${cafe.description}</p>
-          <div class="mb-4 d-flex flex-wrap gap-1">
-            ${ingredientsBadges}
-          </div>
-          <button class="btn btn-warning fw-semibold w-100 py-2 d-flex align-items-center justify-content-center gap-2 add-to-cart-btn">
-            <i class="bi bi-cart-plus-fill"></i> Adicionar ao Carrinho
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Event listener do botão Adicionar ao Carrinho
-    const btnAdd = col.querySelector(".add-to-cart-btn");
-    btnAdd.addEventListener("click", () => {
-      addToCart(cafe);
-      // Atualiza badge de contagem
-      const badge = document.getElementById("cart-badge-count");
-      if (badge) badge.textContent = getCartItemsCount();
-
-      // Feedback visual rápido
-      const originalText = btnAdd.innerHTML;
-      btnAdd.className = "btn btn-success fw-semibold w-100 py-2 d-flex align-items-center justify-content-center gap-2";
-      btnAdd.innerHTML = '<i class="bi bi-check2-circle"></i> Adicionado!';
-      setTimeout(() => {
-        btnAdd.className = "btn btn-warning fw-semibold w-100 py-2 d-flex align-items-center justify-content-center gap-2";
-        btnAdd.innerHTML = originalText;
-      }, 900);
-    });
-
-    gridContainer.appendChild(col);
-  });
 }
 
-/**
- * Renderiza a Página 2: Carrinho de Compras
- */
+// Renderiza a pagina do carrinho com a lista de itens e total
 export function renderCartPage(root, navigateTo) {
   root.innerHTML = "";
   root.appendChild(createNavbar("cart", navigateTo));
@@ -151,6 +153,7 @@ export function renderCartPage(root, navigateTo) {
   const cart = getCart();
   const total = getCartTotal();
 
+  // Exibicao quando nao ha itens no carrinho
   if (cart.length === 0) {
     main.innerHTML = `
       <div class="text-center py-5 my-5">
@@ -176,10 +179,10 @@ export function renderCartPage(root, navigateTo) {
     </div>
     
     <div class="row g-4">
-      <!-- Lista de Itens -->
+      <!-- Coluna da listagem dos itens adicionados -->
       <div class="col-12 col-lg-8" id="cart-items-col"></div>
       
-      <!-- Resumo do Pedido -->
+      <!-- Coluna do resumo financeiro e botao de checkout -->
       <div class="col-12 col-lg-4">
         <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 100px;">
           <h4 class="fw-bold mb-3">Resumo da Compra</h4>
@@ -211,6 +214,7 @@ export function renderCartPage(root, navigateTo) {
 
   const itemsContainer = main.querySelector("#cart-items-col");
 
+  // Cria a linha para cada produto presente no carrinho
   cart.forEach((item) => {
     const card = document.createElement("div");
     card.className = "card border-0 shadow-sm rounded-4 mb-3 p-3";
@@ -238,12 +242,13 @@ export function renderCartPage(root, navigateTo) {
       </div>
     `;
 
-    // Ações de aumentar e diminuir quantidade
+    // Reduz quantidade e re-renderiza a tela do carrinho
     card.querySelector(".btn-decrease").addEventListener("click", () => {
       decreaseQuantity(item.id);
       renderCartPage(root, navigateTo);
     });
 
+    // Aumenta quantidade e re-renderiza a tela do carrinho
     card.querySelector(".btn-increase").addEventListener("click", () => {
       increaseQuantity(item.id);
       renderCartPage(root, navigateTo);
@@ -253,9 +258,7 @@ export function renderCartPage(root, navigateTo) {
   });
 }
 
-/**
- * Renderiza a Página 3: Finalização de Compra (Checkout)
- */
+// Renderiza a pagina de finalizacao com formulario e itens do pedido
 export function renderCheckoutPage(root, navigateTo) {
   root.innerHTML = "";
   root.appendChild(createNavbar("checkout", navigateTo));
@@ -287,19 +290,19 @@ export function renderCheckoutPage(root, navigateTo) {
     </div>
 
     <div class="row g-4">
-      <!-- Formulário de Entrega e Pagamento -->
+      <!-- Formulario para endereco e metodo de pagamento -->
       <div class="col-12 col-lg-7">
         <div class="card border-0 shadow-sm rounded-4 p-4">
           <h4 class="fw-bold mb-4"><i class="bi bi-truck text-warning"></i> Informações do Pedido</h4>
           <form id="checkout-form" novalidate>
-            <!-- Endereço -->
+            <!-- Campo de texto para o endereco -->
             <div class="mb-3">
               <label for="addressInput" class="form-label fw-semibold">Endereço de Entrega</label>
               <input type="text" class="form-control form-control-lg" id="addressInput" placeholder="Rua, número, bairro, complemento..." required>
               <div class="invalid-feedback">Por favor, insira o endereço de entrega completo.</div>
             </div>
 
-            <!-- Método de Pagamento -->
+            <!-- Selecao de forma de pagamento -->
             <div class="mb-4">
               <label for="paymentSelect" class="form-label fw-semibold">Método de Pagamento</label>
               <select class="form-select form-select-lg" id="paymentSelect" required>
@@ -318,7 +321,7 @@ export function renderCheckoutPage(root, navigateTo) {
         </div>
       </div>
 
-      <!-- Resumo dos Itens no momento da finalização -->
+      <!-- Exibicao dos itens que estavam no carrinho -->
       <div class="col-12 col-lg-5">
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
           <h5 class="fw-bold mb-3">Itens do Pedido</h5>
@@ -347,7 +350,7 @@ export function renderCheckoutPage(root, navigateTo) {
 
   main.querySelector("#btn-back-cart").addEventListener("click", () => navigateTo("cart"));
 
-  // Validação e Envio do Formulário
+  // Validacao dos campos do formulario
   const form = main.querySelector("#checkout-form");
   form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -373,17 +376,13 @@ export function renderCheckoutPage(root, navigateTo) {
 
     if (!isValid) return;
 
-    // Limpa o carrinho no LocalStorage conforme requisito 2
+    // Remove os itens do carrinho e exibe tela de confirmacao
     clearCart();
-
-    // Renderiza a confirmação de compra
     renderSuccessMessage(root, navigateTo, address, payment, total);
   });
 }
 
-/**
- * Mensagem de confirmação de compra com sucesso
- */
+// Renderiza a tela de confirmacao com mensagem de sucesso
 function renderSuccessMessage(root, navigateTo, address, payment, total) {
   root.innerHTML = "";
   root.appendChild(createNavbar("home", navigateTo));

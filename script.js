@@ -1,15 +1,10 @@
-// Ponto de entrada da aplicação (SPA Router e Inicialização)
+// Ponto de entrada e roteador da aplicacao
 import { renderHomePage, renderCartPage, renderCheckoutPage } from "./js/views.js";
 
-// Obtém o elemento root especificado nas exigências
+// Elemento container onde o conteudo dinamico e inserido
 const root = document.getElementById("root");
 
-/**
- * Função responsável por alternar entre as 3 telas principais:
- * - "home": Página inicial com a lista de cafés
- * - "cart": Página do carrinho com botões + / - e total
- * - "checkout": Página de finalização com endereço e pagamento
- */
+// Alterna a tela renderizada conforme a rota solicitada
 function navigateTo(page) {
   window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -27,7 +22,7 @@ function navigateTo(page) {
   }
 }
 
-// Inicializa a aplicação na página inicial
+// Inicializa a aplicacao na tela inicial ao carregar o DOM
 document.addEventListener("DOMContentLoaded", () => {
   navigateTo("home");
 });
