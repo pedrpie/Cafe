@@ -92,12 +92,12 @@ export async function renderHomePage(root, navigateTo) {
       col.className = "col-12 col-md-6 col-lg-4";
 
       const ingredientsBadges = (cafe.ingredients || [])
-        .map(ing => `<span class="badge badge-ingredient border py-1 px-2 rounded-2">${ing}</span>`)
+        .map(ing => `<span class="badge bg-secondary-subtle text-secondary-emphasis border py-1 px-2 rounded-2">${ing}</span>`)
         .join(" ");
 
       col.innerHTML = `
-        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden card-coffee">
-          <img src="${cafe.image}" class="card-img-top coffee-img" alt="${cafe.title}">
+        <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+          <img src="${cafe.image}" class="card-img-top" alt="${cafe.title}" style="height: 200px; object-fit: cover;">
           <div class="card-body d-flex flex-column p-4">
             <div class="d-flex justify-content-between align-items-baseline mb-2">
               <h5 class="card-title fw-bold text-dark mb-0">${cafe.title}</h5>
